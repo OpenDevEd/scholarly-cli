@@ -5,8 +5,11 @@ import json
 import os
 from scholarly import scholarly, ProxyGenerator
 
+def gettime():
+    return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+
 def timestamp(text):
-    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f') + ": " + text)
+    print(gettime() + ": " + text)
     return
 
 parser = argparse.ArgumentParser()
@@ -32,7 +35,11 @@ Also support:
 - citedby
 """
 
+
+settings = {}
 args = parser.parse_args()
+settings["start"] = gettime()
+settings["args"] = vars(args)
 
 if (not(args.json or args.bibtex)):
     print("No output will be produced! Use --json or --bibtex to produce output.")
@@ -81,7 +88,8 @@ timestamp("Querying...")
 search_query = scholarly.search_pubs(args.query)
 results = []
 
-timestamp("Query done!")
+timestamp("Query done! results: " + str(search_query.total_results))
+settings["total_results"] = search_query.total_results
 
 for i, result in enumerate(search_query):
     timestamp(str(i))
@@ -90,11 +98,18 @@ for i, result in enumerate(search_query):
     results.append(result)
 
 timestamp("Enumeration done!")
+settings["end"] = gettime()
+
+with open(f"{outfile}.settings.json", 'w', encoding='utf-8') as f:
+    f.write(json.dumps(settings, indent=4))
+
+alljson = []
 
 if args.json:
     for i, result in enumerate(results):
         with open(f"{outfile}_{i+1}.json", 'w') as f:
             json.dump(result, f, indent=4)
+
 if args.bibtex:
     bibtex_results = ""
     for i, result in enumerate(results):
@@ -131,5 +146,6 @@ if args.bibtex:
 
     with open(f"{outfile}.bibtex", 'w', encoding='utf-8') as f:
         f.write(all_results)
+
 
 timestamp("All done!")

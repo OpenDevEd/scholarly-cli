@@ -17,8 +17,6 @@ parser.add_argument('--json', type=bool, default=True, help='Output json (defaul
 parser.add_argument('--bibtex', type=bool, default=False, help='Output bibtex (default=False).')
 parser.add_argument('--out', type=str, help='Output file name without extension - otherwise the search query will be used')
 
-
-
 """
 # These areguments should also be included:
 parser.add_argument('--patents', type=bool, default=True, help='Fill me in.')
@@ -28,6 +26,10 @@ parser.add_argument('--year_high', type=int, default=None, help='Fill me in.')
 parser.add_argument('sort_by (string, optional) – , help='Fill me in.'‘relevance’ or ‘date’, defaults to ‘relevance’
 parser.add_argument('include_last_year (string, optional) – , help='Fill me in.'‘abstracts’ or ‘everything’, defaults to ‘abstracts’ and only applies if ‘sort_by’ is ‘date’
 parser.add_argument('start_index (int, optional) – , help='Fill me in.'starting index of list of publications, defaults to 0
+
+Also support:
+- fill
+- citedby
 """
 
 args = parser.parse_args()
@@ -37,8 +39,27 @@ if (not(args.json or args.bibtex)):
 
 timestamp("Registering proxy:")
 
+# check wethere there is a file called scraperapi.json
+if os.path.exists("scraperapi.json"):
+    with open("scraperapi.json", 'r') as f:
+        scraperapi = json.load(f)
+else:
+    scraperapi = {}
+
 pg = ProxyGenerator()
-pg.FreeProxies()
+
+# check whether scraperapi has the key called key
+if "key" in scraperapi:
+    success = pg.ScraperAPI(scraperapi["key"])
+    if not success:
+        timestamp("failed connecting to scraperapi!")
+        exit()
+    else:  
+        timestamp("connected to scraperapi!")
+else:
+    timestamp("Free proxy will be registered!")
+    pg.FreeProxies()
+    
 scholarly.use_proxy(pg)
 
 outfile = ""
@@ -56,7 +77,7 @@ results = []
 timestamp("Query done!")
 
 for i, result in enumerate(search_query):
-    timestamp(i)
+    timestamp(str(i))
     if i >= args.results-1:
         break
     results.append(result)

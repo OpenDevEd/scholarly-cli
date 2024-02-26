@@ -39,9 +39,16 @@ if (not(args.json or args.bibtex)):
 
 timestamp("Registering proxy:")
 
-# check wethere there is a file called scraperapi.json
+scraperapifile = ""
+home = os.path.expanduser("~")
 if os.path.exists("scraperapi.json"):
-    with open("scraperapi.json", 'r') as f:
+    scraperapifile = "scraperapi.json"
+elif os.path.exists(home + "/.config/scraperapi/scraperapi.json"):
+    scraperapifile = home + "/.config/scraperapi/scraperapi.json"
+
+# check wethere there is a file called scraperapi.json
+if os.path.exists(scraperapifile):
+    with open(scraperapifile, 'r') as f:
         scraperapi = json.load(f)
 else:
     scraperapi = {}

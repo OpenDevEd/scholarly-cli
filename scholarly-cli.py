@@ -49,7 +49,7 @@ else:
 
 timestamp("Output file name: "+outfile)
 
-timestamp("Query:")
+timestamp("Querying...")
 search_query = scholarly.search_pubs(args.query)
 results = []
 

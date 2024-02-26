@@ -1,13 +1,17 @@
+#!/usr/bin/python3
 import argparse
 import json
 import os
 from scholarly import scholarly, ProxyGenerator
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--query', type=str, help='Search query')
+parser.add_argument('--query', type=str, help='Search query', required=True)
 parser.add_argument('--results', type=int, default=20, help='Number of results to retrieve')
 parser.add_argument('--format', type=str, choices=['json', 'bibtex'], default='json', help='Output format')
 parser.add_argument('--out', type=str, default='results', help='Output file name without extension')
+
+
+
 """
 # These areguments should also be included:
 parser.add_argument('--patents', type=bool, default=True, help='Fill me in.')

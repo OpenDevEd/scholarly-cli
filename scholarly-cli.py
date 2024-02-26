@@ -47,7 +47,7 @@ if (args.out):
 else:
     outfile = f"{args.query}"
 
-timestamp("Output file name: ", outfile)
+timestamp("Output file name: "+outfile)
 
 timestamp("Query:")
 search_query = scholarly.search_pubs(args.query)

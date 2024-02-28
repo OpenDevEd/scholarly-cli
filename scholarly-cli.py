@@ -136,6 +136,7 @@ def main():
         outfile = settings["timestamp"] + " - " + outfile
 
 
+
     timestamp("Output file name: "+outfile)
 
     timestamp("Querying...")

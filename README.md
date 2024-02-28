@@ -27,10 +27,10 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 
 #### Basic Usage
 ```bash
-python scholarly-cli.py --query "Attention is all you need" --results 10 --format json --out results 
+python scholarly-cli.py --query "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
 ```bash
-python3 scholarly-cli.py --query "Attention is all you need" --results 10 --format json --out results 
+python3 scholarly-cli.py --query "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
 
 
@@ -40,11 +40,11 @@ If you have access to a paid API, such as Google's Academic API, you can use it 
 
 #### For Linux
 ```bash
-python3 scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --format json --out result --api_key_file "API_KEY.txt"
+python3 scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
 ```
 #### For Windows
 ```bash
-python scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --format json --out result --api_key_file "API_KEY.txt"
+python scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
 ```          
 
 ## Output

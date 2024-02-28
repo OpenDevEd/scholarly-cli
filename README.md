@@ -7,13 +7,15 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 ### Prerequisites
 - Python 3.x installed on your machine (https://www.python.org/downloads/)
 - Install dependencies: `pip install scholarly` for windows
-- Install dependencies: `pip install scholarly` for Linux
+- Install dependencies: `pip3 install scholarly` for Linux
 
 ### Command-line Arguments
 
 - `--query`: Search query. Specify the topic you want to search for.
 - `--results`: Number of results to retrieve (default is 20).
 - `--format`: Output format (`json` or `bibtex`, default is `json`).
+    
+    The --bibtex command triggers additional queries to complete publication metadata. If data is incomplete, detailed information is fetched, leading to extra network requests and processing. Upon completion, data is converted and formatted for BibTeX.
 - `--out`: Output file name without extension (default is `results`).
 - `--api_key`: Scraper API Key (optional).
 - `--api_key_file`: Path to a file containing Scraper API Key (optional).
@@ -24,16 +26,23 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 ```bash
 python scholarly-cli.py --query "Machine Learning" --results 10 --format json --out machine_learning_results 
 ```
+```bash
+python3 scholarly-cli.py --query "Machine Learning" --results 10 --format json --out machine_learning_results 
 ```
-python3 test_1.py --query "GPT understands, too" --results 20 --format json --out result --api_key_file "API_KEY.txt"
-```
+
 
 #### Using an API key
 To use the Scraper API, you need to obtain an API key from https://developer.unpaywall.org/. You can then pass this as an argument using the `--api_
 If you have access to a paid API, such as Google's Academic API, you can use it with the following command:
 
-bash
-
+#### For Linux
+```bash
+python3 scholarly-cli.py --query "GPT understands, too" --results 20 --format json --out result --api_key_file "API_KEY.txt"
+```
+#### For Windows
+```bash
+python scholarly-cli.py --query "GPT understands, too" --results 20 --format json --out result --api_key_file "API_KEY.txt"
+```          
 
 ## Output
 
@@ -51,4 +60,4 @@ bash
 
 - If no API key is provided, the tool uses free proxies for accessing Google Scholar.
 - The script measures and displays the execution time.
-- 
+- The API key can be found in the file specified by API_KEY.txt

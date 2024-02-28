@@ -6,6 +6,7 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 
 ### Prerequisites
 - Python 3.x installed on your machine (https://www.python.org/downloads/)
+- Here's how to install python : https://kinsta.com/knowledgebase/install-python/
 - Install dependencies: `pip install scholarly` for windows
 - Install dependencies: `pip3 install scholarly` for Linux
 
@@ -13,6 +14,8 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 
 - `--query`: Search query. Specify the topic you want to search for.
 - `--results`: Number of results to retrieve (default is 20).
+- `--patents`: Specifies whether you want to include patents in the results (True or False).
+- `--citations`: Specifies whether you want to include citations in the results (True or False).
 - `--format`: Output format (`json` or `bibtex`, default is `json`).
     
     The --bibtex command triggers additional queries to complete publication metadata. If data is incomplete, detailed information is fetched, leading to extra network requests and processing. Upon completion, data is converted and formatted for BibTeX.
@@ -24,10 +27,10 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 
 #### Basic Usage
 ```bash
-python scholarly-cli.py --query "Machine Learning" --results 10 --format json --out machine_learning_results 
+python scholarly-cli.py --query "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
 ```bash
-python3 scholarly-cli.py --query "Machine Learning" --results 10 --format json --out machine_learning_results 
+python3 scholarly-cli.py --query "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
 
 
@@ -37,11 +40,11 @@ If you have access to a paid API, such as Google's Academic API, you can use it 
 
 #### For Linux
 ```bash
-python3 scholarly-cli.py --query "GPT understands, too" --results 20 --format json --out result --api_key_file "API_KEY.txt"
+python3 scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
 ```
 #### For Windows
 ```bash
-python scholarly-cli.py --query "GPT understands, too" --results 20 --format json --out result --api_key_file "API_KEY.txt"
+python scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
 ```          
 
 ## Output
@@ -61,3 +64,4 @@ python scholarly-cli.py --query "GPT understands, too" --results 20 --format jso
 - If no API key is provided, the tool uses free proxies for accessing Google Scholar.
 - The script measures and displays the execution time.
 - The API key can be found in the file specified by API_KEY.txt
+- For more informations just write `‘scholarly-cli.py —help’` will show you help.

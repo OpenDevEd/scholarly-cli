@@ -131,9 +131,11 @@ def main():
     else:
         outfile = f"{args.query}"
 
-    if (args.time):
-        settings["timestamp"] = gettime()
+    if args.time:
+        settings["timestamp"] = gettime().replace(':', '_')
         outfile = settings["timestamp"] + " - " + outfile
+
+
 
     timestamp("Output file name: "+outfile)
 

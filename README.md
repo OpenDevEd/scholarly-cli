@@ -7,6 +7,7 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 ### Prerequisites
 - Python 3.x installed on your machine (https://www.python.org/downloads/)
 - Here's how to install python : https://kinsta.com/knowledgebase/install-python/
+- Here's how to install Git : https://kinsta.com/knowledgebase/install-git/
 - Install dependencies: `pip install scholarly` for windows
 - Install dependencies: `pip3 install scholarly` for Linux
 

@@ -2,16 +2,25 @@
 
 This is a command-line tool (`scholarly-cli.py`) built using Python to interact with Google Scholar and retrieve publication data based on a user query.
 
-## Usage
+# Usage
 
-### Prerequisites
+## Prerequisites
+
 - Python 3.x installed on your machine (https://www.python.org/downloads/)
 - Here's how to install python : https://kinsta.com/knowledgebase/install-python/
 - Here's how to install Git : https://kinsta.com/knowledgebase/install-git/
 - Install dependencies: `pip install scholarly` for windows
 - Install dependencies: `pip3 install scholarly` for Linux
 
-### Command-line Arguments
+## Clone the Scholarly CLI Repository
+
+With Git installed, you can now clone the Scholarly CLI repository to your local machine. Open a terminal or command prompt and execute the following command:
+```
+git clone https://github.com/OpenDevEd/scholarly-cli.git
+```
+
+
+## Command-line Arguments
 
 - `--query`: Search query. Specify the topic you want to search for.
 - `--results`: Number of results to retrieve (default is 20).
@@ -24,9 +33,9 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 - `--api_key`: Scraper API Key (optional).
 - `--api_key_file`: Path to a file containing Scraper API Key (optional).
 
-### Example Usage
+## Example Usage
 
-#### Basic Usage
+### Basic Usage
 ```bash
 python scholarly-cli.py --query "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
@@ -35,15 +44,15 @@ python3 scholarly-cli.py --query "Attention is all you need" --results 10 --json
 ```
 
 
-#### Using an API key
+### Using an API key
 To use the Scraper API, you need to obtain an API key from https://developer.unpaywall.org/. You can then pass this as an argument using the `--api_
 If you have access to a paid API, such as Google's Academic API, you can use it with the following command:
 
-#### For Linux
+### For Linux
 ```bash
 python3 scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
 ```
-#### For Windows
+### For Windows
 ```bash
 python scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
 ```          

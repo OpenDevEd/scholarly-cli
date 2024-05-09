@@ -12,6 +12,25 @@ This is a command-line tool (`scholarly-cli.py`) built using Python to interact 
 -- `pip install scholarly` for windows 
 -- `pip3 install scholarly` for Linux
 
+### Installation
+
+- Clone the repository:
+```bash
+git clone https://github.com/OpenDevEd/scholarly-cli.git
+```
+- Navigate to the project directory:
+```bash
+cd scholarly-cli
+```
+- Install the script:
+```bash
+pip3 install -e .
+```
+- Run the script:
+```bash
+scholarly-cli --help
+```
+
 ### Command-line Arguments
 
 - `--query`: Search query. Specify the topic you want to search for.

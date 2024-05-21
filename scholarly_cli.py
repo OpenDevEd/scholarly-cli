@@ -5,7 +5,7 @@ import json
 import os
 from scholarly import scholarly, ProxyGenerator
 import time
-#import requests
+import requests
 
 def gettime():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -16,7 +16,7 @@ def timestamp(text):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--query', type=str, help='Search query')
+    parser.add_argument('--search', type=str, help='Search query')
     parser.add_argument('--results', type=int, default=20, help='Number of results to retrieve')
     parser.add_argument('--patents', type=bool, default=True, help='NEDS TO BE IMPLEMENTED.')
     parser.add_argument('--citations', type=bool, default=True, help='NEDS TO BE IMPLEMENTED.')
@@ -43,26 +43,34 @@ Also support:
 - author page query
 """
 
+
+
 def getproxy(args):
     pg = ProxyGenerator()
+
     # Use different ways of determining apikey:
     apikey = ""
     # Highest priority:
     timestamp("api key from file")
     apikey = read_api_key()
         
-    if apikey != "":    
+    print("API key read from file:", apikey)  # Add this line for debugging
+    
+    if apikey != "":
         success = pg.ScraperAPI(apikey)
         if not success:
-            timestamp("failed connecting to scraperapi!")
-            exit()
-        else:  
-            timestamp("connected to scraperapi!")    
+            timestamp("Failed connecting to ScraperAPI using provided API key.")
+            timestamp("Falling back to free proxies.")
+            pg.FreeProxies()
+            scholarly.use_proxy(pg)  # Use free proxies
     else:
-        timestamp("Free proxy will be registered!")
+        timestamp("API key not found or invalid. Using free proxies.")
         pg.FreeProxies()
-            
-    scholarly.use_proxy(pg)
+        scholarly.use_proxy(pg)  # Use free proxies
+
+
+
+
 
 # Function to retrieve additional details for a publication
 def get_full_publication_details(publication):

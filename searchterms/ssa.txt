@@ -1,0 +1,56 @@
+# Countries in sub-Saharan Africa
+# This file illustrates a basic example of using the 'OR' option:
+#OR
+(
+Burundi
+Comoros
+Djibouti
+Eritrea
+Ethiopia
+Kenya
+Madagascar
+Malawi
+Mauritius
+Mozambique
+Puntland
+Rwanda
+Seychelles
+Somalia
+Somaliland
+South Sudan
+Tanzania
+Uganda
+Zambia
+Zimbabwe
+Angola
+Cameroon
+Central African Republic
+Chad
+Congo
+Equatorial Guinea
+Gabon
+São Tomé and Príncipe
+Sudan
+Botswana
+eSwatini
+Swaziland
+Lesotho
+Namibia
+South Africa
+Benin
+Burkina Faso
+Cape Verde
+Gambia
+Ghana
+Guinea
+Guinea-Bissau
+Ivory Coast
+Liberia
+Mali
+Mauritania
+Niger
+Nigeria
+Senegal
+Sierra Leone
+Togo
+)

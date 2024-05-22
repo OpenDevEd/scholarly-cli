@@ -48,10 +48,10 @@ scholarly-cli --help
 
 #### Basic Usage
 ```bash
-python scholarly-cli.py --query "Attention is all you need" --results 10 --json True --bibtex True --out results 
+python scholarly-cli.py --search "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
 ```bash
-python3 scholarly-cli.py --query "Attention is all you need" --results 10 --json True --bibtex True --out results 
+python3 scholarly-cli.py --search "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
 
 
@@ -61,11 +61,12 @@ If you have access to a paid API, such as Google's Academic API, you can use it 
 
 #### For Linux
 ```bash
-python3 scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
+scholarly-cli --search "Attention is all you need" --results 10 --json True --bibtex True --out results --sort_by date --sort_order desc --year_l
+ow 2010 --year_high 2010
 ```
 #### For Windows
 ```bash
-python scholarly-cli.py --query "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
+python scholarly-cli.py --search "Definition of artificial neural networks with comparison to other networks" --results 20 --json True --bibtex True --out result --api_key_file "API_KEY.txt"
 ```          
 
 ## Output

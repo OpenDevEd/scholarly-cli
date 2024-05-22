@@ -1,0 +1,13 @@
+# This file illustrates a basic example of using the 'OR'/'AND' options.
+# Your mileage will vary...
+#OR
+(
+	climate
+	#AND
+	(
+		#OR
+		change
+		adaptation
+		mitigation
+	)
+)

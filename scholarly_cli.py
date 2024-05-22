@@ -98,12 +98,32 @@ def parse_arguments():
     parser.add_argument('--time', type=bool, default=True, help='Prefix data/time to the output file.')
     parser.add_argument('--sort_by', type=str, choices=["relevance","date"], default="relevance", help="Sort by relevance or date, defaults to relevance")
     parser.add_argument('--sort_order', type=str, choices=["asc","desc"], default="asc", help="Sort order: asc or desc, defaults to asc")
-    # parser.add_argument('--priority', type=str, default='relevance', help='Comma-separated list of criteria for priority sorting, e.g., relevance,date,citations')
+    parser.add_argument('--testurllength', action='store_true', help='Test the length of the search query against common URL length limits')
 
     subparsers = parser.add_subparsers(dest='command')
     subparsers.add_parser('config', help='Configure API key')
 
     return parser.parse_args()
+
+def test_url_length(search_query):
+    url_length = len(search_query)
+    print(f"Search query length: {url_length} characters")
+    
+    # Common URL length limits for web technologies
+    browser_limit = 2**11
+    nginx_limit = 2**12
+    apache_limit = 2**13
+    
+    print(f"Browser URL length limit: {browser_limit} characters")
+    print(f"Nginx URL length limit: {nginx_limit} characters")
+    print(f"Apache URL length limit: {apache_limit} characters")
+    
+    if url_length > browser_limit:
+        print("Warning: Search query exceeds browser URL length limit!")
+    if url_length > nginx_limit:
+        print("Warning: Search query exceeds Nginx URL length limit!")
+    if url_length > apache_limit:
+        print("Warning: Search query exceeds Apache URL length limit!")
 
 def getproxy(args):
     pg = ProxyGenerator()
@@ -161,23 +181,6 @@ def chunk_list(iterable, chunk_size):
     if chunk:
         yield chunk
 
-# def sort_results_by_priority(results, priority):
-#     """Sort results based on priority order."""
-#     if not priority:
-#         return results
-
-#     # Define the priority order
-#     priority_order = {
-#         'relevance': 0,
-#         'date': 1,
-#         'citations': 2  # Add more criteria as needed
-#     }
-
-#     # Sort results based on priority order
-#     results.sort(key=lambda x: (priority_order.get(x['priority'], float('inf')), x['value']))
-
-#     return results
-
 def main():
     start_time = time.time()
 
@@ -186,6 +189,11 @@ def main():
 
     print("Parsed arguments:", args)  # Debugging line to see all parsed arguments
 
+    if args.testurllength:
+        search_query = search_builder(args.search)
+        test_url_length(search_query)
+        return
+    
     if args.count:
         search_query = search_builder(args.search)
         # Start a thread to count results with a timeout
@@ -207,115 +215,72 @@ def main():
     settings["args"] = vars(args)
 
     if (not(args.json or args.ijson or args.bibtex)):
-        print("No output will be produced! Use --json, --ijson or --bibtex to produce output.")
+        print("No output will be produced! Use --json, --ijson or --bibtex to specify output format.")
+        exit(0)
+        
+    search_query = search_builder(args.search)
+    print("search_query=", search_query)
 
-    # Registering a proxy for web scraping
-    timestamp("Registering proxy:")
+    settings["search"] = search_query
+
+    # Check if an API key is already configured
+    if not os.path.exists(api_key_file):
+        # Prompt the user to input their API key
+        ask_for_api_key()
+
+    # Fetch publications and process them
     getproxy(args)
-    timestamp("Done!")
+    search_query = scholarly.search_pubs(search_query)
 
-    outfile = ""
-    if (args.out):
-        outfile = f"{args.out}"
-    else:
-        outfile = f"{args.search}"
-
-    if args.time:
-        settings["timestamp"] = gettime().replace(':', '_')
-        outfile = settings["timestamp"] + " - " + outfile
-
-    # Determining the output file name
-    timestamp("Output file name: "+outfile)
-
-    timestamp("Querying...")
-    search_query = scholarly.search_pubs(args.search)
+    counter = 0
     results = []
-
-    total_results_processed = 0
-
-    # Processing search results in chunks
-    # Processing search results in chunks
-    chunk_size = 5  # You can adjust this value as needed
-    for i, chunk in enumerate(chunk_list(search_query, chunk_size), start=1):  # Start enumeration from 1
-        timestamp(f"Processing chunk {i} with {len(chunk)} results")
-        results_chunk = []  # Initialize a new list for this chunk's results
-        for result in chunk:
-            total_results_processed += 1
-            pub_year = result['bib'].get('pub_year', 0)
-            try:
-                year_low = int(args.year_low)
-                year_high = int(args.year_high)
-                pub_year_int = int(pub_year)
-            except ValueError:
-                # Handle the case where conversion fails
-                print("Error: Unable to convert year values to integers.")
-            else:
-                if (year_low and pub_year_int < year_low) or (year_high and pub_year_int > year_high):
-                    continue
-            results_chunk.append(result)  # Append results to this chunk's list
-            if total_results_processed >= args.results:
-                break
-        if total_results_processed >= args.results:
+    while counter < args.results:
+        try:
+            publication = next(search_query)
+            results.append(publication)
+            counter += 1
+        except StopIteration:
+            break
+        except Exception as e:
+            print(f"Error retrieving publication: {e}")
             break
 
-        # Save the results of this chunk to a separate file
-        if args.json or args.ijson:
-            for j, result in enumerate(results_chunk):
-                if (args.fill):
-                    fullresult = get_full_publication_details(result)
-                else:
-                    fullresult = result
-                if args.ijson:
-                    with open(f"{outfile}_chunk_{i}_{j+1}.json", 'w') as f:
-                        json.dump(fullresult, f, indent=4)
-                alljson.append(fullresult)
-            if args.json:
-                settings["results"].append(results_chunk)  # Append this chunk's results to the overall results
+    # Sort the results based on the specified criteria
+    if args.sort_by == 'date':
+        results.sort(key=lambda x: x.get('pub_year', 0), reverse=(args.sort_order == 'desc'))
+    elif args.sort_by == 'relevance':
+        # Implement relevance sorting if needed
+        pass
 
-    # Sorting results based on priority
-    # priority_list = args.priority.split(',')
-    # results = sort_results_by_priority(results, priority_list)
+    settings["results"] = results
 
-    timestamp("Enumeration done!")
+    out = args.out if args.out else re.sub(r'\W+', '_', search_query)
+    filename = f"{out}_results"
+
+    if args.time:
+        filename = f"{gettime()}_{filename}"
+
+    if args.json:
+        with open(f"{filename}.json", 'w') as f:
+            json.dump(results, f, indent=4)
+
+    if args.ijson:
+        for i, result in enumerate(results):
+            with open(f"{filename}_{i}.json", 'w') as f:
+                json.dump(result, f, indent=4)
+
+    if args.bibtex:
+        bibtex_str = ""
+        for result in results:
+            bibtex_str += scholarly.bibtex(result) + "\n"
+        with open(f"{filename}.bib", 'w') as f:
+            f.write(bibtex_str)
+
+    timestamp("Data written to " + filename)
     settings["time_end"] = gettime()
 
-    alljson = []
+    elapsed_time = time.time() - start_time
+    timestamp(f"Script executed in {elapsed_time:.2f} seconds.")
 
-    # Generating JSON output
-    if args.json or args.ijson:
-        for i, result in enumerate(results):
-            if (args.fill):
-                fullresult = get_full_publication_details(result)
-            else:
-                fullresult = result
-            if args.ijson:
-                with open(f"{outfile}_{i+1}.json", 'w') as f:
-                    json.dump(fullresult, f, indent=4)
-            alljson.append(fullresult)
-        if args.json:
-            settings["results"] = alljson
-
-        with open(f"{outfile}.json", 'w', encoding='utf-8') as f:
-            f.write(json.dumps(settings, indent=4))
-
-    # Generating BibTeX output
-    if args.bibtex:
-        bibtex_results = ""
-        for i, result in enumerate(results):
-            bibtex = scholarly.bibtex(result)
-            filename = f"{args.out}_{i+1}.bibtex"
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write(bibtex)
-            bibtex_results += bibtex + '\n\n'
-        with open(f"{outfile}.bibtex", 'w', encoding='utf-8') as f:
-            f.write(bibtex_results)
-
-    timestamp("All done!")
-    end_time = time.time()
-    duration = end_time - start_time
-    print(f"Script execution time: {duration} seconds")
-    print(f"Total results processed: {total_results_processed}")
-
-# Entry point of the script
 if __name__ == "__main__":
     main()

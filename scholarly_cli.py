@@ -182,6 +182,31 @@ def chunk_list(iterable, chunk_size):
     if chunk:
         yield chunk
 
+def create_metadata(search_query, args, total_results, chunk_number=None, chunk_size=None):
+    """Create metadata for a chunk or the whole result."""
+    metadata = {
+        "version": "OpenDevEd_jsonUploaderV01",
+        "query": search_query,
+        "searchTerm": args.search,
+        "totalResults": total_results if total_results is not None else "Unknown",
+        "source": "Google Scholar",
+        "sourceFormat": "original",  # Assuming original format
+        "date": gettime(),
+        "searchscholar": "title|title_abstract_keywords|fulltext",  # Example value, adjust as needed
+        "page": chunk_number if chunk_number is not None else "1",  # Chunk number if chunking, otherwise "1"
+        "resultsPerPage": chunk_size if chunk_size is not None else args.results,
+        "firstItem": (chunk_number - 1) * chunk_size + 1 if chunk_number is not None else "1",
+        "startingPage": "",  # No pagination information available in this script
+        "endingPage": "",  # No pagination information available in this script
+        "filters": {
+            "dateFrom": args.year_low,
+            "dateTo": args.year_high
+        },
+        "groupBy": "",  # No grouping applied in this script
+        "sortBy": {"field": args.sort_by, "order": args.sort_order}  # Sort by specified field and order
+    }
+    return metadata
+
 def main():
     start_time = time.time()
 
@@ -278,7 +303,7 @@ def main():
     if args.sort_by == 'date':
         results.sort(key=lambda x: x.get('pub_year', 0), reverse=(args.sort_order == 'desc'))
     elif args.sort_by == 'relevance':
-        results.sort(key=lambda x: x['num_citations'], reverse=(args.sort_order == 'desc'))
+        results.sort(key=lambda x: x['num_citations'], reverse=((args.sort_order == 'desc')))
 
     settings["results"] = results
 
@@ -291,11 +316,14 @@ def main():
     # Save results in chunks if --chunks is specified
     if args.chunks:
         chunk_size = args.chunks
+        total_results = len(results)
         for i, chunk in enumerate(chunk_list(results, chunk_size)):
             chunk_filename = f"{filename}_chunk_{i+1}"
+            chunk_metadata = create_metadata(search_query, args, total_results, chunk_number=i+1, chunk_size=chunk_size)
+            chunk_with_metadata = {"meta": chunk_metadata, "results": chunk}
             if args.json:
                 with open(f"{chunk_filename}.json", 'w') as f:
-                    json.dump(chunk, f, indent=4)
+                    json.dump(chunk_with_metadata, f, indent=4)
             if args.ijson:
                 for j, result in enumerate(chunk):
                     with open(f"{chunk_filename}_{j}.json", 'w') as f:
@@ -331,27 +359,7 @@ def main():
 
     # Generating JSON output
     if args.json or args.ijson:
-        metadata = {
-            "version": "OpenDevEd_jsonUploaderV01",
-            "query": search_query,
-            "searchTerm": args.search,
-            "totalResults": result_count if result_count is not None else "Unknown",
-            "source": "Google Scholar",
-            "sourceFormat": "original",  # Assuming original format
-            "date": gettime(),
-            "searchscholar": "title|title_abstract_keywords|fulltext",  # Example value, adjust as needed
-            "page": "1",  # Assuming single page for now
-            "resultsPerPage": args.results,
-            "firstItem": "1",  # Assuming first item is always 1
-            "startingPage": "",  # No pagination information available in this script
-            "endingPage": "",  # No pagination information available in this script
-            "filters": {
-                "dateFrom": args.year_low,
-                "dateTo": args.year_high
-            },
-            "groupBy": "",  # No grouping applied in this script
-            "sortBy": {"field": args.sort_by, "order": args.sort_order}  # Sort by specified field and order
-        }
+        metadata = create_metadata(search_query, args, total_results=result_count)
 
         alljson_with_metadata = {
             "meta": metadata,

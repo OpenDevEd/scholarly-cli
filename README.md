@@ -53,7 +53,7 @@ python scholarly-cli.py --search "Attention is all you need" --results 10 --json
 ```bash
 python3 scholarly-cli.py --search "Attention is all you need" --results 10 --json True --bibtex True --out results 
 ```
-
+scholarly-cli --search "techhigh_v1..." --results 100 --json --out results --sort_by relevance --sort_order desc --year_low 2011 --year_high 2023 --chunks 10
 
 #### Using an API key
 To use the Scraper API, you need to obtain an API key from https://developer.unpaywall.org/. You can then pass this as an argument using the `--api_

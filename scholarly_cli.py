@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+import uuid
 from pathlib import Path
 from scholarly import scholarly, ProxyGenerator
 
@@ -95,7 +96,7 @@ def parse_arguments():
     parser.add_argument('--out', type=str, help='Output file name without extension - otherwise the search query will be used')
     parser.add_argument('--time', action='store_true', help='Prefix data/time to the output file.')
     parser.add_argument('--sort_by', type=str, choices=["relevance","date"], default="relevance", help="Sort by relevance or date, defaults to relevance")
-    parser.add_argument('--sort_order', type=str, choices=["asc","desc"], default="asc", help="Sort order: asc or desc, defaults to asc")
+    parser.add_argument('--sort_order', type=str, choices=["asc","desc"], default="desc", help="Sort order: asc or desc, defaults to asc")
     parser.add_argument('--testurllength', action='store_true', help='Test the length of the search query against common URL length limits')
     parser.add_argument('--chunks', type=int, help='Number of results per chunk')
 
@@ -173,7 +174,7 @@ def chunk_list(iterable, chunk_size):
     if chunk:
         yield chunk
 
-def create_metadata(search_query, args, total_results, chunk_number=None, chunk_size=None):
+def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number=None, chunk_size=None):
     metadata = {
         "version": "OpenDevEd_jsonUploaderV01",
         "query": search_query,
@@ -182,7 +183,7 @@ def create_metadata(search_query, args, total_results, chunk_number=None, chunk_
         "source": "Google Scholar",
         "sourceFormat": "original",
         "date": gettime(),
-        "searchscholar": "title|title_abstract_keywords|fulltext",
+        "searchsFiled": "title_abstract",
         "page": chunk_number if chunk_number is not None else "1",
         "resultsPerPage": chunk_size if chunk_size is not None else args.results,
         "firstItem": (chunk_number - 1) * chunk_size + 1 if chunk_number is not None else "1",
@@ -195,6 +196,8 @@ def create_metadata(search_query, args, total_results, chunk_number=None, chunk_
         "sortBy": args.sort_by,
         "sortOrder": args.sort_order,
         "numResults": chunk_size if chunk_size is not None else args.results,
+        "searchID": searchID,
+        "queryUrl": queryUrl
     }
     return metadata
 
@@ -216,6 +219,8 @@ def main():
         return
 
     search_query = search_builder(args.search)
+    searchID = str(uuid.uuid4())
+    queryUrl = f"https://scholar.google.com/scholar?q={search_query}"
     
     if args.testurllength:
         test_url_length(search_query)
@@ -239,6 +244,13 @@ def main():
             break
         if args.fill:
             result = get_full_publication_details(result)
+            
+        result["time_start"] = start_time
+        result["args"] = vars(args)
+        result["timestamp"] = gettime()
+        result["time_end"] = gettime()
+
+        
         retrieved_results.append(result)
     
     # Sorting based on args.sort_by
@@ -259,7 +271,7 @@ def main():
         if args.chunks:
             for chunk_number, chunk in enumerate(chunk_list(retrieved_results, args.chunks), start=1):
                 output_data = {
-                    "metadata": create_metadata(search_query, args, total_results, chunk_number, args.chunks),
+                    "metadata": create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number, args.chunks),
                     "time_start": start_time,
                     "args": vars(args),
                     "timestamp": gettime(),
@@ -271,7 +283,7 @@ def main():
                 print(f"Chunk {chunk_number} saved to {output_filename}")
         else:
             output_data = {
-                "metadata": create_metadata(search_query, args, total_results),
+                "metadata": create_metadata(search_query, args, total_results, searchID, queryUrl),
                 "time_start": start_time,
                 "args": vars(args),
                 "timestamp": gettime(),
@@ -285,7 +297,7 @@ def main():
     if args.ijson:
         for i, result in enumerate(retrieved_results):
             output_data = {
-                "metadata": create_metadata(search_query, args, total_results, chunk_number=i+1, chunk_size=1),
+                "metadata": create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number=i+1, chunk_size=1),
                 "time_start": start_time,
                 "args": vars(args),
                 "timestamp": gettime(),
@@ -308,4 +320,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -27,20 +27,27 @@ def quote_if_needed(term):
         return f'"{term}"'
     return term
 
-def search_builder(query):
+def search_builder(query, toolname="evidence"):
+    """Build a search query by expanding keywords based on predefined terms in text files."""
     search_query = ''
     for item in query.split():
         match = re.search(r'(\w+)\.\.\.', item)
         if match:
             key = match.group(1)
-            file_path = Path(f'.searchterms/{key}.txt')
-            if not file_path.exists():
-                file_path = Path.home() / f'.search-terms/searchterms/{key}.txt'
-            if file_path.exists():
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    result = file.read()
-            else:
+            file_paths = [
+                Path(f'./searchterms/{key}.txt'),
+                Path.home() / f'.config/evidence-cli/searchterms/{key}.txt',
+                Path.home() / f'.config/{toolname}-cli/searchterms/{key}.txt'
+            ]
+            result = None
+            for file_path in file_paths:
+                if file_path.exists():
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        result = file.read()
+                        break
+            if not result:
                 result = key
+            
             result_arr = result.splitlines()
             result = ''
             operator = ''

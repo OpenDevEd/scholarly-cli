@@ -130,7 +130,6 @@ def getproxy(args):
             scholarly.use_proxy(pg)  # Use free proxies
             timestamp("Falling back to free proxies.")
         scholarly.use_proxy(pg)
-        timestamp("Falling back to free proxies.")
     else:
         timestamp("API key not found or invalid. Using free proxies.")
         pg.FreeProxies()

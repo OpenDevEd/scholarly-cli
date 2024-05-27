@@ -13,16 +13,7 @@ def count_results(search_query, timeout=30):
     """ Function to count results with a timeout. """
     try:
         search_results = scholarly.search_pubs(search_query)
-        result_count = 0
-        start_time = time.time()
-        for _ in search_results:
-            result_count += 1
-            if time.time() - start_time > timeout:
-                print("Timeout reached while counting results.")
-                return result_count
-            if result_count > 10000:  # Set a reasonable limit to prevent infinite loops
-                print("Warning: Stopping count at 10000 for performance reasons.")
-                break
+        result_count = search_results._get_total_results()
         return result_count
     except Exception as e:
         print(f"Error counting results: {e}")
@@ -258,9 +249,10 @@ def main():
     # Sorting based on args.sort_by
     try:
         if args.sort_by == "relevance":
-            retrieved_results.sort(key=lambda x: x['num_citations'], reverse=((args.sort_order == 'desc')))
+            retrieved_results.sort(key=lambda x: x.get('num_citations', 0), reverse=(args.sort_order == 'desc'))
         elif args.sort_by == "date":
             retrieved_results.sort(key=lambda x: x.get('pub_year', 0), reverse=(args.sort_order == 'desc'))
+
     except KeyError:
         print("The specified sort key is not found in the search results. Falling back to sorting by date.")
 

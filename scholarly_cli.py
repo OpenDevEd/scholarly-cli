@@ -27,7 +27,7 @@ def quote_if_needed(term):
         return f'"{term}"'
     return term
 
-def search_builder(query, toolname="evidence"):
+def search_builder(query):
     """Build a search query by expanding keywords based on predefined terms in text files."""
     search_query = ''
     for item in query.split():
@@ -35,9 +35,9 @@ def search_builder(query, toolname="evidence"):
         if match:
             key = match.group(1)
             file_paths = [
-                Path(f'./searchterms/{key}.txt'),
+                Path.cwd() / f'./searchterms/{key}.txt',
                 Path.home() / f'.config/evidence-cli/searchterms/{key}.txt',
-                Path.home() / f'.config/{toolname}-cli/searchterms/{key}.txt'
+                Path.home() / f'.scholarly-cli/searchterms/{key}.txt'
             ]
             result = None
             for file_path in file_paths:

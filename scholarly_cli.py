@@ -130,6 +130,7 @@ def getproxy(args):
             scholarly.use_proxy(pg)  # Use free proxies
             timestamp("Falling back to free proxies.")
         scholarly.use_proxy(pg)
+        print("Using ScraperAPI with provided API key.")
     else:
         timestamp("API key not found or invalid. Using free proxies.")
         pg.FreeProxies()
@@ -227,8 +228,8 @@ def main():
     # print the search results length
     
     
-    # total_results = count_results(search_query)
-    # print(f"Total results for '{args.search}': {total_results}")
+    total_results = count_results(search_query)
+    print(f"Total results for '{args.search}': {total_results}")
 
     retrieved_results = []
     for i, result in enumerate(search_results):
@@ -264,7 +265,7 @@ def main():
         if args.chunks:
             for chunk_number, chunk in enumerate(chunk_list(retrieved_results, args.chunks), start=1):
                 output_data = {
-                    "meta": create_metadata(search_query, args, None, searchID, queryUrl, chunk_number, args.chunks),
+                    "meta": create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number, args.chunks),
                     "time_start": start_time,
                     "args": vars(args),
                     "timestamp": gettime(),
@@ -276,7 +277,7 @@ def main():
                 print(f"Chunk {chunk_number} saved to {output_filename}")
         else:
             output_data = {
-                "meta": create_metadata(search_query, args, None, searchID, queryUrl),
+                "meta": create_metadata(search_query, args, total_results, searchID, queryUrl),
                 "time_start": start_time,
                 "args": vars(args),
                 "timestamp": gettime(),
@@ -290,7 +291,7 @@ def main():
     if args.ijson:
         for i, result in enumerate(retrieved_results):
             output_data = {
-                "meta": create_metadata(search_query, args, None, searchID, queryUrl, chunk_number=i+1, chunk_size=1),
+                "meta": create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number=i+1, chunk_size=1),
                 "time_start": start_time,
                 "args": vars(args),
                 "timestamp": gettime(),

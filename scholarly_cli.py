@@ -33,7 +33,7 @@ def search_builder(query):
         match = re.search(r'(\w+)\.\.\.', item)
         if match:
             key = match.group(1)
-            file_path = Path(f'./scholarly-cli/searchterms/{key}.txt')
+            file_path = Path(f'.searchterms/{key}.txt')
             if not file_path.exists():
                 file_path = Path.home() / f'.search-terms/searchterms/{key}.txt'
             if file_path.exists():

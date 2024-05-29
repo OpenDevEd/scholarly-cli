@@ -1,0 +1,40 @@
+#OR
+(
+basic education
+college
+early childhood 
+early years
+ECE
+elementary education
+further education
+k-12
+k to 12
+k to 5
+k–5
+key stage
+kindergarten
+lower secondary 
+nursery
+post-16 education
+post-primary
+post-secondary education
+postsecondary education
+pre-k
+pre-primary
+pre-school
+primary education
+secondary education
+sixth form
+school
+teacher
+classroom
+alternative provision
+homework
+PRU
+pupil referral unit
+additional resource provision
+14 to 16 provision
+14-16 provision
+SEMH unit
+learning hub
+)

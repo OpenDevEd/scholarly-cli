@@ -3,11 +3,25 @@ import argparse
 import datetime
 import json
 import os
+import math
 import re
 import time
 import uuid
+import logging
+import datetime
 from pathlib import Path
 from scholarly import scholarly, ProxyGenerator
+
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+log_file = 'script.log'
+file_handler = logging.FileHandler(log_file)
+file_handler.setLevel(logging.INFO)
+file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
 
 def count_results(search_query, timeout=30):
     """ Function to count results with a timeout. """
@@ -35,7 +49,7 @@ def search_builder(query):
         if match:
             key = match.group(1)
             file_paths = [
-                Path.cwd() / f'./searchterms/{key}.txt',
+                Path.home() / f'./searchterms/{key}.txt',
                 Path.home() / f'.config/evidence-cli/searchterms/{key}.txt',
                 Path.home() / f'.scholarly-cli/searchterms/{key}.txt'
             ]
@@ -75,8 +89,7 @@ def gettime():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
 def timestamp(text):
-    print(gettime() + ": " + text)
-    return
+    logger.info(text)
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -102,6 +115,36 @@ def parse_arguments():
     subparsers.add_parser('config', help='Configure API key')
 
     return parser.parse_args()
+
+
+def log_additional_info(page, progress, remaining_queries, total_results, items_per_page, start_time, quota_after_search_has_finished):
+    current_time = time.time()
+    time_elapsed = current_time - start_time
+    total_time_estimated = time_elapsed / (progress / 100) if progress > 0 else 0
+    time_remaining = total_time_estimated - time_elapsed
+    time_remaining_formatted = format_as_time(time_remaining)
+    estimated_completion_time = datetime.datetime.now() + datetime.timedelta(seconds=time_remaining)
+    estimated_completion_time_iso = estimated_completion_time.isoformat()
+    info_string = (
+        f"Retrieving page: {page}\n"
+        f"- Progress: {progress} %\n"
+        f"- Remaining duration: {time_remaining_formatted}\n"
+        f"- Estimated completion time: {estimated_completion_time_iso}\n"
+        f"- Query quota: {remaining_queries}\n"
+        f"- Query Quota remaining after search: {quota_after_search_has_finished}\n"
+    )
+    logger.info(info_string)
+
+    if quota_after_search_has_finished < 0:
+        logger.warning("Warning: Query quota will be exhausted before search is finished.")
+
+
+def format_as_time(seconds):
+    """Formats time in seconds to a human-readable format."""
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+
 
 def test_url_length(search_query):
     query_length = len(search_query)
@@ -207,19 +250,25 @@ def main():
     start_time = time.time()
     args = parse_arguments()
 
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"Final query: {args.search}")
+
     if args.command == 'config':
         api_key = ask_for_api_key()
-        print(f"API key saved to {api_key_file}")
+        logger.info(f"API key saved to {api_key_file}")
         return
 
     if not args.search:
-        print("Please provide a search query using --search argument.")
+        logger.error("Please provide a search query using --search argument.")
         return
 
     search_query = search_builder(args.search)
     searchID = str(uuid.uuid4())
     queryUrl = f"https://scholar.google.com/scholar?q={search_query}"
-    
+
     if args.testurllength:
         test_url_length(search_query)
         return
@@ -228,31 +277,63 @@ def main():
 
     if args.count:
         total_results = count_results(search_query)
-        print(f"Total results for '{args.search}': {total_results}")
+        if total_results is None:
+            logger.error("Failed to count total results.")
+            return
+        logger.info(f"Total results for '{args.search}': {total_results}")
         return
 
     search_results = scholarly.search_pubs(search_query)
-    # print the search results length
-    
-    
-    total_results = count_results(search_query)
-    print(f"Total results for '{args.search}': {total_results}")
 
+    total_results = count_results(search_query)
+    if total_results is None:
+        logger.error("Failed to count total results.")
+        return
+    logger.info(f"Total results for '{args.search}': {total_results}")
+
+    remaining_queries = 20000  # Example initial value, replace with actual value
     retrieved_results = []
+    items_retrieved = 0  # Initialize items_retrieved
+
+    total_number_of_items = min(args.results, total_results) if total_results is not None else args.results  # Calculate total number of items to retrieve
+
+    total_number_of_api_requests_needed = math.ceil(total_results / args.results) if total_results is not None else 0
+    quota_after_search_has_finished = remaining_queries - total_number_of_api_requests_needed
+
     for i, result in enumerate(search_results):
-        if i >= args.results:
+        items_retrieved += 1  # Increment items_retrieved within the loop
+
+        if items_retrieved > total_number_of_items:
             break
+
+        
+        if i % 10 == 0:
+            logger.info(f"Retrieving page {i // 10 + 1}")
+            # increment i 
+            i += 1
+            
+
+        remaining_queries -= 1  # Update remaining_queries accordingly based on your code
+
+        if remaining_queries % 100 == 0:  # Log remaining queries periodically
+            logger.info(f"- Remaining queries: {remaining_queries}")
+
         if args.fill:
             result = get_full_publication_details(result)
-            
+
         result["time_start"] = start_time
         result["args"] = vars(args)
         result["timestamp"] = gettime()
         result["time_end"] = gettime()
 
-        
         retrieved_results.append(result)
-    
+
+        # Calculate progress
+        progress = round((items_retrieved / total_number_of_items) * 100)
+
+        # Log additional information
+        log_additional_info(i + 1, progress, remaining_queries, total_results, args.results, start_time, quota_after_search_has_finished)
+
     # Sorting based on args.sort_by
     try:
         if args.sort_by == "relevance":
@@ -261,11 +342,10 @@ def main():
             retrieved_results.sort(key=lambda x: x.get('pub_year', 0), reverse=(args.sort_order == 'desc'))
 
     except KeyError:
-        print("The specified sort key is not found in the search results. Falling back to sorting by date.")
-
+        logger.warning("The specified sort key is not found in the search results. Falling back to sorting by date.")
 
     if not (args.json or args.ijson or args.bibtex):
-        print("No output will be produced! Use --json, --ijson or --bibtex to specify output format.")
+        logger.error("No output will be produced! Use --json, --ijson or --bibtex to specify output format.")
         return
 
     if args.json:
@@ -281,7 +361,7 @@ def main():
                 }
                 output_filename = f"{args.out if args.out else args.search}_{chunk_number}.json"
                 save_to_json(output_data, output_filename)
-                print(f"Chunk {chunk_number} saved to {output_filename}")
+                logger.info(f"Chunk {chunk_number} saved to {output_filename}")
         else:
             output_data = {
                 "meta": create_metadata(search_query, args, total_results, searchID, queryUrl),
@@ -293,7 +373,7 @@ def main():
             }
             output_filename = f"{args.out if args.out else args.search}.json"
             save_to_json(output_data, output_filename)
-            print(f"Results saved to {output_filename}")
+            logger.info(f"Results saved to {output_filename}")
 
     if args.ijson:
         for i, result in enumerate(retrieved_results):
@@ -305,19 +385,24 @@ def main():
                 "time_end": gettime(),
                 "results": [result]
             }
+           
             output_filename = f"{args.out if args.out else args.search}_{i+1}.json"
             save_to_json(output_data, output_filename)
-            print(f"Individual result saved to {output_filename}")
+            logger.info(f"Individual result saved to {output_filename}")
 
+    # Log script settings
     settings = {
         "time_start": gettime(),
         "args": vars(args),
         "sort_by": args.sort_by
     }
-
     settings["time_end"] = gettime()
     elapsed_time = time.time() - start_time
-    timestamp(f"Script executed in {elapsed_time:.2f} seconds.")
+    logger.info(f"Script executed in {elapsed_time:.2f} seconds.")
+    logger.info("Script execution completed.")
+          
+
 
 if __name__ == "__main__":
     main()
+

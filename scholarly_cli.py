@@ -8,29 +8,32 @@ import re
 import time
 import uuid
 import logging
-import datetime
 from pathlib import Path
 from scholarly import scholarly, ProxyGenerator
 
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-log_file = 'script.log'
-file_handler = logging.FileHandler(log_file)
-file_handler.setLevel(logging.INFO)
-file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(file_formatter)
-logger.addHandler(file_handler)
+def configure_logging():
+    """Configure logging settings."""
+    log_file = 'script.log'
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+    return logger
+
+logger = configure_logging()
 
 def count_results(search_query, timeout=30):
-    """ Function to count results with a timeout. """
+    """Function to count results with a timeout."""
     try:
         search_results = scholarly.search_pubs(search_query)
-        result_count = search_results._get_total_results()
+        result_count = sum(1 for _ in search_results)
         return result_count
     except Exception as e:
-        print(f"Error counting results: {e}")
+        logger.error(f"Error counting results: {e}")
         return None
 
 def sanitise(input_string):
@@ -116,7 +119,6 @@ def parse_arguments():
 
     return parser.parse_args()
 
-
 def log_additional_info(page, progress, remaining_queries, total_results, items_per_page, start_time, quota_after_search_has_finished):
     current_time = time.time()
     time_elapsed = current_time - start_time
@@ -138,13 +140,11 @@ def log_additional_info(page, progress, remaining_queries, total_results, items_
     if quota_after_search_has_finished < 0:
         logger.warning("Warning: Query quota will be exhausted before search is finished.")
 
-
 def format_as_time(seconds):
     """Formats time in seconds to a human-readable format."""
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
-
 
 def test_url_length(search_query):
     query_length = len(search_query)
@@ -192,13 +192,17 @@ def get_full_publication_details(publication):
 api_key_file = os.path.expanduser("~/.config/scholarly-cli/api_key.txt")
 
 def read_api_key():
-    with open(api_key_file, 'r') as f:
-        return f.read().strip()
-        
+    try:
+        with open(api_key_file, 'r') as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        logger.error("API key file not found.")
+        return None
+
 def ask_for_api_key():
     print("Please provide your API key: ")
     api_key = input()
-    dirname     = os.path.dirname(api_key_file)
+    dirname = os.path.dirname(api_key_file)
     os.makedirs(dirname, exist_ok=True)
     with open(api_key_file, 'w') as f:
         f.write(api_key)
@@ -250,10 +254,6 @@ def main():
     start_time = time.time()
     args = parse_arguments()
 
-    # Configure logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger(__name__)
-
     logger.info(f"Final query: {args.search}")
 
     if args.command == 'config':
@@ -268,6 +268,9 @@ def main():
     search_query = search_builder(args.search)
     searchID = str(uuid.uuid4())
     queryUrl = f"https://scholar.google.com/scholar?q={search_query}"
+
+    # Print the final search query for debugging
+    print(f"Constructed search query: {search_query}")
 
     if args.testurllength:
         test_url_length(search_query)
@@ -402,7 +405,5 @@ def main():
     logger.info("Script execution completed.")
           
 
-
 if __name__ == "__main__":
     main()
-

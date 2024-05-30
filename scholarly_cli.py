@@ -256,21 +256,14 @@ def main():
     chunk_number = -1
     total_results_estimated = 0
 
-    for i, result in enumerate(search_results):
+    for result in search_results:
         items_retrieved += 1
         items_in_chunk += 1
 
-        if items_retrieved >= total_number_of_items:
+        if items_retrieved > total_number_of_items:
             break
 
-        if i % 10 == 0:
-            logger.info(f"Retrieving page number {i // 10 + 1}")
-            i += 1
-
         remaining_queries -= 1
-
-        if remaining_queries % 100 == 0:
-            logger.info(f"- Remaining queries: {remaining_queries}")
 
         if args.fill:
             result = get_full_publication_details(result)
@@ -278,18 +271,19 @@ def main():
         retrieved_results.append(result)
         total_results_estimated += 1  # Increment total results estimate
 
-        if args.chunksize and items_in_chunk > args.chunksize:
+        if args.chunksize and items_in_chunk >= args.chunksize:
             chunk_number += 1
             write_data(args, search_query, start_time, total_results_estimated, searchID, queryUrl, chunk_number, retrieved_results)
             retrieved_results = []
             items_in_chunk = 0
 
         progress = round((items_retrieved / total_number_of_items) * 100)
-        log_additional_info(i + 1, progress, remaining_queries, total_results_estimated, args.limit, start_time, quota_after_search_has_finished)
+        log_additional_info(items_retrieved, progress, remaining_queries, total_results_estimated, items_per_api_query, start_time, quota_after_search_has_finished)
 
-    if args.chunksize is not None:
-        chunk_number += 1
-    write_data(args, search_query, start_time, total_results_estimated, searchID, queryUrl, chunk_number, retrieved_results)
+    if retrieved_results:
+        if args.chunksize is not None:
+            chunk_number += 1
+        write_data(args, search_query, start_time, total_results_estimated, searchID, queryUrl, chunk_number, retrieved_results)
 
     if not (args.json or args.ijson or args.bibtex):
         logger.error("No output will be produced! Use --json, --ijson or --bibtex to specify output format.")

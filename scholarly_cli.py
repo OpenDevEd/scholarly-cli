@@ -11,7 +11,6 @@ import logging
 from pathlib import Path
 from scholarly import scholarly, ProxyGenerator
 
-
 def configure_logging():
     """Configure logging settings."""
     log_file = 'script.log'
@@ -26,17 +25,13 @@ def configure_logging():
     logger.addHandler(file_handler)
     return logger
 
-
 logger = configure_logging()
-
 
 def gettime():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
-
 def timestamp(text):
     logger.info(text)
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -80,7 +75,6 @@ def parse_arguments():
 
     return parser.parse_args()
 
-
 def log_additional_info(page, progress, remaining_queries, total_results, items_per_page, start_time, quota_after_search_has_finished):
     current_time = time.time()
     time_elapsed = current_time - start_time
@@ -105,13 +99,11 @@ def log_additional_info(page, progress, remaining_queries, total_results, items_
         logger.warning(
             "Warning: Query quota will be exhausted before search is finished.")
 
-
 def format_as_time(seconds):
     """Formats time in seconds to a human-readable format."""
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
-
 
 def test_url_length(search_query):
     query_length = len(search_query)
@@ -130,7 +122,6 @@ def test_url_length(search_query):
 
     if full_url_length > 2048:
         print("Warning: The full URL exceeds the typical maximum length of 2048 characters for URLs.")
-
 
 def getproxy(args):
     pg = ProxyGenerator()
@@ -154,13 +145,10 @@ def getproxy(args):
         pg.FreeProxies()
         scholarly.use_proxy(pg)  # Use free proxies
 
-
 def get_full_publication_details(publication):
     return scholarly.fill(publication)
 
-
 api_key_file = os.path.expanduser("~/.config/scholarly-cli/api_key.txt")
-
 
 def read_api_key():
     try:
@@ -170,7 +158,6 @@ def read_api_key():
         logger.error("API key file not found.")
         return None
 
-
 def ask_for_api_key():
     print("Please provide your API key: ")
     api_key = input()
@@ -179,7 +166,6 @@ def ask_for_api_key():
     with open(api_key_file, 'w') as f:
         f.write(api_key)
     return api_key
-
 
 def chunk_list(iterable, chunk_size):
     """Yield successive chunks from the iterable."""
@@ -191,7 +177,6 @@ def chunk_list(iterable, chunk_size):
             chunk = []
     if chunk:
         yield chunk
-
 
 def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number=None, chunk_size=None, start_time=None):
     firstItem = 1
@@ -226,17 +211,13 @@ def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk
     }
     return metadata
 
-
 def save_to_json(data, filename):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-
 def main():
     start_time = time.time()
     args = parse_arguments()
-
-    logger.info(f"Final query: {args.search}")
 
     if args.command == 'config':
         api_key = ask_for_api_key()
@@ -247,7 +228,6 @@ def main():
         logger.error("Please provide a search query using --search argument.")
         return
 
-    # TODO: expansion
     search_query = args.search
     searchID = str(uuid.uuid4())
     queryUrl = f"https://scholar.google.com/scholar?q={search_query}"
@@ -261,30 +241,22 @@ def main():
 
     getproxy(args)
 
-    # This is the full version, but what happens if year_low=None?
-    # search_results = scholarly.search_pubs(search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high, start_index=args.start_index)
-    search_results = scholarly.search_pubs(search_query, year_low="2011")
-
+    search_results = scholarly.search_pubs(search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
+    
     remaining_queries = 20000  # Example initial value, replace with actual value
 
-    # min(args.results, total_results) if total_results is not None else args.results  # Calculate total number of items to retrieve
     total_number_of_items = args.limit
     items_per_api_query = 10
-    # I think scholarly always fetches 10 results per request:
-    total_number_of_api_requests_needed = math.ceil(
-        total_number_of_items / items_per_api_query)
-    quota_after_search_has_finished = remaining_queries - \
-        total_number_of_api_requests_needed
+    total_number_of_api_requests_needed = math.ceil(total_number_of_items / items_per_api_query)
+    quota_after_search_has_finished = remaining_queries - total_number_of_api_requests_needed
 
-    # We dont have total results:
-    total_results = -1
-
-    items_retrieved = 0  # Initialize items_retrieved
+    items_retrieved = 0
     retrieved_results = []
     items_in_chunk = 0
     chunk_number = -1
+    total_results_estimated = 0
+
     for i, result in enumerate(search_results):
-        # Increment items_retrieved within the loop
         items_retrieved += 1
         items_in_chunk += 1
 
@@ -293,52 +265,36 @@ def main():
 
         if i % 10 == 0:
             logger.info(f"Retrieving page number {i // 10 + 1}")
-            # increment i
             i += 1
 
-        remaining_queries -= 1  # Update remaining_queries accordingly based on your code
+        remaining_queries -= 1
 
-        if remaining_queries % 100 == 0:  # Log remaining queries periodically
+        if remaining_queries % 100 == 0:
             logger.info(f"- Remaining queries: {remaining_queries}")
 
         if args.fill:
             result = get_full_publication_details(result)
 
-        # result["time_start"] = start_time
-        # result["args"] = vars(args)
-        # result["timestamp"] = gettime()
-        # result["time_end"] = gettime()
-
         retrieved_results.append(result)
+        total_results_estimated += 1  # Increment total results estimate
 
-        # Write data to file if chunksize is reached.
-        # Reason for chunking: Keep memory requirements within reasonable limits.
         if args.chunksize and items_in_chunk > args.chunksize:
             chunk_number += 1
-            write_data(args, search_query, start_time, total_results,
-                       searchID, queryUrl, chunk_number, retrieved_results)
+            write_data(args, search_query, start_time, total_results_estimated, searchID, queryUrl, chunk_number, retrieved_results)
             retrieved_results = []
             items_in_chunk = 0
 
-        # Calculate progress
         progress = round((items_retrieved / total_number_of_items) * 100)
-
-        # Log additional information
-        log_additional_info(i + 1, progress, remaining_queries, total_results,
-                            args.limit, start_time, quota_after_search_has_finished)
+        log_additional_info(i + 1, progress, remaining_queries, total_results_estimated, args.limit, start_time, quota_after_search_has_finished)
 
     if args.chunksize is not None:
         chunk_number += 1
-    # Write out remaining results:
-    write_data(args, search_query, start_time, total_results,
-               searchID, queryUrl, chunk_number, retrieved_results)
+    write_data(args, search_query, start_time, total_results_estimated, searchID, queryUrl, chunk_number, retrieved_results)
 
     if not (args.json or args.ijson or args.bibtex):
-        logger.error(
-            "No output will be produced! Use --json, --ijson or --bibtex to specify output format.")
+        logger.error("No output will be produced! Use --json, --ijson or --bibtex to specify output format.")
         return
 
-    # Log script settings
     settings = {
         "time_start": gettime(),
         "args": vars(args),
@@ -349,7 +305,6 @@ def main():
     logger.info(f"Script executed in {elapsed_time:.2f} seconds.")
     logger.info("Script execution completed.")
 
-
 def write_data(args, search_query, start_time, total_results, searchID, queryUrl, chunk_number, result):
     if args.json:
         output_data = {
@@ -357,12 +312,10 @@ def write_data(args, search_query, start_time, total_results, searchID, queryUrl
             "results": result
         }
         if chunk_number > -1:
-            # Write a chunk
             output_filename = f"{args.save if args.save else args.search}_{chunk_number}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Chunk {chunk_number} saved to {output_filename}")
         else:
-            # Write full data:
             output_filename = f"{args.save if args.save else args.search}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Results saved to {output_filename}")
@@ -376,7 +329,6 @@ def write_data(args, search_query, start_time, total_results, searchID, queryUrl
             output_filename = f"{args.save if args.save else args.search}_{i+1}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Individual result saved to {output_filename}")
-
 
 if __name__ == "__main__":
     main()

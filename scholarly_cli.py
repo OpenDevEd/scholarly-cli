@@ -29,13 +29,17 @@ def configure_logging():
     logger.addHandler(file_handler)
     return logger
 
+
 logger = configure_logging()
+
 
 def gettime():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
+
 def timestamp(text):
     logger.info(text)
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -48,7 +52,8 @@ def parse_arguments():
                         help='Include patents in the search results.')
     parser.add_argument('--citations', type=bool, default=False,
                         help='Include citations in the search results.')
-    parser.add_argument('--date', type=str, help='Date range in format year_low-year_high')
+    parser.add_argument('--date', type=str,
+                        help='Date range in format year_low-year_high')
     parser.add_argument('--sort_by', type=str, choices=["relevance", "date"],
                         default="relevance", help="Sort by relevance or date, defaults to relevance")
     parser.add_argument('--sort_order', type=str, choices=[
@@ -76,6 +81,7 @@ def parse_arguments():
 
     return parser.parse_args()
 
+
 def log_additional_info(page, progress, remaining_queries, total_results, items_per_page, start_time, quota_after_search_has_finished):
     current_time = time.time()
     time_elapsed = current_time - start_time
@@ -100,11 +106,13 @@ def log_additional_info(page, progress, remaining_queries, total_results, items_
         logger.warning(
             "Warning: Query quota will be exhausted before search is finished.")
 
+
 def format_as_time(seconds):
     """Formats time in seconds to a human-readable format."""
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+
 
 def test_url_length(search_query):
     query_length = len(search_query)
@@ -123,6 +131,7 @@ def test_url_length(search_query):
 
     if full_url_length > 2048:
         print("Warning: The full URL exceeds the typical maximum length of 2048 characters for URLs.")
+
 
 def getproxy(args):
     pg = ProxyGenerator()
@@ -146,10 +155,13 @@ def getproxy(args):
         pg.FreeProxies()
         scholarly.use_proxy(pg)  # Use free proxies
 
+
 def get_full_publication_details(publication):
     return scholarly.fill(publication)
 
+
 api_key_file = os.path.expanduser("~/.config/scholarly-cli/api_key.txt")
+
 
 def read_api_key():
     try:
@@ -159,6 +171,7 @@ def read_api_key():
         logger.error("API key file not found.")
         return None
 
+
 def ask_for_api_key():
     print("Please provide your API key: ")
     api_key = input()
@@ -167,6 +180,7 @@ def ask_for_api_key():
     with open(api_key_file, 'w') as f:
         f.write(api_key)
     return api_key
+
 
 def chunk_list(iterable, chunk_size):
     """Yield successive chunks from the iterable."""
@@ -179,10 +193,12 @@ def chunk_list(iterable, chunk_size):
     if chunk:
         yield chunk
 
+
 def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number=None, chunk_size=None, start_time=None):
     firstItem = 1
     if chunk_size is not None:
-        firstItem = (chunk_number - 1) * chunk_size + 1 if chunk_number is not None else "1"
+        firstItem = (chunk_number - 1) * chunk_size + \
+            1 if chunk_number is not None else "1"
     metadata = {
         "version": "OpenDevEd_jsonUploaderV01",
         "query": search_query,
@@ -211,21 +227,29 @@ def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk
     }
     return metadata
 
+
 def save_to_json(data, filename):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
-        
-def count_results(args, timeout=30):
+
+
+def count_results(args, search_query, timeout=30):
     """ Function to count results with a timeout. """
     try:
-        search_query = args.search
-        search_results = scholarly.search_pubs(search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
-        result_count = search_results._get_total_results()
-        formatted_count = "{:,}".format(result_count) if result_count is not None else "Unknown"
-        return formatted_count
+        search_results = scholarly.search_pubs(
+            search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
+        return get_results_count(search_results)
     except Exception as e:
         print(f"Error counting results: {e}")
         return None
+
+
+def get_results_count(search_results):
+    result_count = search_results._get_total_results()
+    formatted_count = "{:,}".format(
+        result_count) if result_count is not None else "Unknown"
+    return formatted_count
+
 
 def main():
     start_time = time.time()
@@ -246,42 +270,54 @@ def main():
             args.year_low = year_low
             args.year_high = year_high
         except ValueError:
-            logger.error("Invalid date format. Please use year_low-year_high format.")
+            logger.error(
+                "Invalid date format. Please use year_low-year_high format.")
             return
 
     search_query = args.search
+    filenameBase = re.sub(r'\W+', '_', search_query)
 
     # Check if search_query contains '...'
     if '...' in search_query:
+        print(f"Original search query: {search_query}")
         # Check if 'search-terms-expander' command exists
         if shutil.which('search-terms-expander') is not None:
             # Pass search_query to the external command and read the output
-            expanded_search_query = subprocess.check_output(['search-terms-expander', search_query]).decode('utf-8')
+            expanded_search_query = subprocess.check_output(
+                ['search-terms-expander', "-g", "-s", filenameBase + ".terms.x1E.txt", search_query]).decode('utf-8')
+            expanded_search_query = expanded_search_query.replace('\n', ' ')
+            expanded_search_query = expanded_search_query.replace('  ', ' ')
+            print(f"Expanded search query: /{expanded_search_query}/\n")
         else:
             raise Exception("'search-terms-expander' command not found")
     else:
         expanded_search_query = search_query
 
     encoded_search_query = quote(expanded_search_query)
+    print(f"Encoded search query: {encoded_search_query}")
 
     searchID = str(uuid.uuid4())
-    queryUrl = f"https://scholar.google.com/scholar?q={encoded_search_query}"
+    queryUrl = f"https://scholar.google.com/scholar?q={expanded_search_query}"
     if args.testurllength:
         test_url_length(search_query)
         return
 
     getproxy(args)
 
-    search_results = scholarly.search_pubs(search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
+    search_results = scholarly.search_pubs(expanded_search_query, patents=args.patents,
+                                           citations=args.citations, year_low=args.year_low, year_high=args.year_high)
 
     remaining_queries = 20000  # Example initial value, replace with actual value
 
     total_number_of_items = args.limit
     total_results_estimated = 0
 
+    count = get_results_count(search_results)
+    with open(filenameBase + ".tsv", 'w') as f:
+        # Write count, search_query, and expanded_search_query to the file, separated by tabs
+        f.write(f"{count}\t{search_query}\t{expanded_search_query}\n")
+    print(f"Total number of results: {count}")
     if args.count:
-        count = count_results(args)
-        print(f"Total number of results: {count}")
         return
 
     items_retrieved = 0
@@ -306,20 +342,24 @@ def main():
 
         if args.chunksize and items_in_chunk >= args.chunksize:
             chunk_number += 1
-            write_data(args, search_query, start_time, total_results_estimated, searchID, queryUrl, chunk_number, retrieved_results)
+            write_data(args, search_query, start_time, total_results_estimated,
+                       searchID, queryUrl, chunk_number, retrieved_results)
             retrieved_results = []
             items_in_chunk = 0
 
         progress = round((items_retrieved / total_number_of_items) * 100)
-        log_additional_info(items_retrieved, progress, remaining_queries, total_results_estimated, 10, start_time, remaining_queries)
+        log_additional_info(items_retrieved, progress, remaining_queries,
+                            total_results_estimated, 10, start_time, remaining_queries)
 
     if retrieved_results:
         if args.chunksize is not None:
             chunk_number += 1
-        write_data(args, search_query, start_time, total_results_estimated, searchID, queryUrl, chunk_number, retrieved_results)
+        write_data(args, search_query, start_time, total_results_estimated,
+                   searchID, queryUrl, chunk_number, retrieved_results)
 
     if not (args.json or args.ijson or args.bibtex):
-        logger.error("No output will be produced! Use --json, --ijson or --bibtex to specify output format.")
+        logger.error(
+            "No output will be produced! Use --json, --ijson or --bibtex to specify output format.")
         return
 
     settings = {
@@ -357,6 +397,7 @@ def write_data(args, search_query, start_time, total_results, searchID, queryUrl
             output_filename = f"{args.save if args.save else args.search}_{i+1}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Individual result saved to {output_filename}")
+
 
 if __name__ == "__main__":
     main()

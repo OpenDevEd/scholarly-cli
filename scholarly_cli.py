@@ -41,13 +41,10 @@ def parse_arguments():
     parser.add_argument('--count', action='store_true',
                         help='Only count the number of results without processing them')
     parser.add_argument('--patents', type=bool, default=False,
-                        help='NEEDS TO BE IMPLEMENTED.')
-    parser.add_argument('--citations', type=bool,
-                        default=False, help='NEEDS TO BE IMPLEMENTED.')
-    parser.add_argument('--year_low', type=int, default=None,
-                        help='NEEDS TO BE IMPLEMENTED.')
-    parser.add_argument('--year_high', type=int, default=None,
-                        help='NEEDS TO BE IMPLEMENTED.')
+                        help='Include patents in the search results.')
+    parser.add_argument('--citations', type=bool, default=False,
+                        help='Include citations in the search results.')
+    parser.add_argument('--date', type=str, help='Date range in format year_low-year_high')
     parser.add_argument('--sort_by', type=str, choices=["relevance", "date"],
                         default="relevance", help="Sort by relevance or date, defaults to relevance")
     parser.add_argument('--sort_order', type=str, choices=[
@@ -191,7 +188,6 @@ def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk
         "sourceFormat": "original",
         "date": gettime(),
         "searchsFiled": "title_abstract",
-        "page": chunk_number if chunk_number is not None else "1",
         "resultsPerPage": chunk_size if chunk_size is not None else args.limit,
         "firstItem": firstItem,
         "startingPage": "",
@@ -239,6 +235,15 @@ def main():
     if not args.search:
         logger.error("Please provide a search query using --search argument.")
         return
+
+    if args.date:
+        try:
+            year_low, year_high = map(int, args.date.split('-'))
+            args.year_low = year_low
+            args.year_high = year_high
+        except ValueError:
+            logger.error("Invalid date format. Please use year_low-year_high format.")
+            return
 
     search_query = args.search
     searchID = str(uuid.uuid4())

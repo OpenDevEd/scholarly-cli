@@ -186,7 +186,7 @@ def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk
         "version": "OpenDevEd_jsonUploaderV01",
         "query": search_query,
         "searchTerm": args.search,
-        "totalResults": total_results if total_results is not None else "Unknown",
+        "totalResults": count_results(args),
         "source": "Google Scholar",
         "sourceFormat": "original",
         "date": gettime(),
@@ -214,6 +214,18 @@ def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk
 def save_to_json(data, filename):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+        
+def count_results(args, timeout=30):
+    """ Function to count results with a timeout. """
+    try:
+        search_query = args.search
+        search_results = scholarly.search_pubs(search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
+        result_count = search_results._get_total_results()
+        formatted_count = "{:,}".format(result_count) if result_count is not None else "Unknown"
+        return formatted_count
+    except Exception as e:
+        print(f"Error counting results: {e}")
+        return None
 
 def main():
     start_time = time.time()
@@ -232,9 +244,6 @@ def main():
     searchID = str(uuid.uuid4())
     queryUrl = f"https://scholar.google.com/scholar?q={search_query}"
 
-    # Print the final search query for debugging
-    print(f"Constructed search query: {search_query}")
-
     if args.testurllength:
         test_url_length(search_query)
         return
@@ -242,19 +251,21 @@ def main():
     getproxy(args)
 
     search_results = scholarly.search_pubs(search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
-    
+
     remaining_queries = 20000  # Example initial value, replace with actual value
 
     total_number_of_items = args.limit
-    items_per_api_query = 10
-    total_number_of_api_requests_needed = math.ceil(total_number_of_items / items_per_api_query)
-    quota_after_search_has_finished = remaining_queries - total_number_of_api_requests_needed
+    total_results_estimated = 0
+
+    if args.count:
+        count = count_results(args)
+        print(f"Total number of results: {count}")
+        return
 
     items_retrieved = 0
     retrieved_results = []
     items_in_chunk = 0
     chunk_number = -1
-    total_results_estimated = 0
 
     for result in search_results:
         items_retrieved += 1
@@ -278,7 +289,7 @@ def main():
             items_in_chunk = 0
 
         progress = round((items_retrieved / total_number_of_items) * 100)
-        log_additional_info(items_retrieved, progress, remaining_queries, total_results_estimated, items_per_api_query, start_time, quota_after_search_has_finished)
+        log_additional_info(items_retrieved, progress, remaining_queries, total_results_estimated, 10, start_time, remaining_queries)
 
     if retrieved_results:
         if args.chunksize is not None:
@@ -298,6 +309,7 @@ def main():
     elapsed_time = time.time() - start_time
     logger.info(f"Script executed in {elapsed_time:.2f} seconds.")
     logger.info("Script execution completed.")
+
 
 def write_data(args, search_query, start_time, total_results, searchID, queryUrl, chunk_number, result):
     if args.json:

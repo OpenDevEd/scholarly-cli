@@ -279,6 +279,10 @@ def main():
 
     search_query = args.search
     filenameBase = re.sub(r'\W+', '_', search_query)
+    if (args.time):
+        start_time_datetime = datetime.datetime.fromtimestamp(start_time)
+        start_time_fmt = start_time_datetime.strftime('%Y%m%d-%H%M%S')
+        filenameBase = start_time_fmt + "-" + filenameBase
 
     # Check if search_query contains '...'
     if '...' in search_query:
@@ -379,8 +383,9 @@ def main():
 
 def write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query, searchID, queryUrl, chunk_number, result):
     filenamestub = args.save if args.save else re.sub(r'\W+', '_', args.search)
-    start_time_fmt = start_time.strftime('%Y_%m_%d_%H_%M_%S')
-    start_time_fmt2 = start_time.strftime('%Y-%m-%d %H:%M:%S')
+    start_time_datetime = datetime.datetime.fromtimestamp(start_time)
+    start_time_fmt = start_time_datetime.strftime('%Y%m%d-%H%M%S')
+    start_time_fmt2 = start_time_datetime.strftime('%Y-%m-%d %H:%M:%S')
     if (args.time):
         filenamestub = start_time_fmt + "-" + filenamestub
     if args.json:

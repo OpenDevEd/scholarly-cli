@@ -378,27 +378,32 @@ def main():
 
 
 def write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query, searchID, queryUrl, chunk_number, result):
+    filenamestub = args.save if args.save else re.sub(r'\W+', '_', args.search)
+    start_time_fmt = start_time.strftime('%Y_%m_%d_%H_%M_%S')
+    start_time_fmt2 = start_time.strftime('%Y-%m-%d %H:%M:%S')
+    if (args.time):
+        filenamestub = start_time_fmt + "-" + filenamestub
     if args.json:
         output_data = {
-            "meta": create_metadata(search_query, args, total_results_retrieved, total_results_this_query,  searchID, queryUrl, chunk_number, args.chunksize, start_time),
+            "meta": create_metadata(search_query, args, total_results_retrieved, total_results_this_query,  searchID, queryUrl, chunk_number, args.chunksize, start_time_fmt2),
             "results": result
         }
         if chunk_number > -1:
-            output_filename = f"{args.save if args.save else args.search}_{chunk_number}.json"
+            output_filename = f"{filenamestub}_{chunk_number}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Chunk {chunk_number} saved to {output_filename}")
         else:
-            output_filename = f"{args.save if args.save else args.search}.json"
+            output_filename = f"{filenamestub}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Results saved to {output_filename}")
 
     if args.ijson:
         for i, result in enumerate(result):
             output_data = {
-                "meta": create_metadata(search_query, args, total_results_retrieved, total_results_this_query,  searchID, queryUrl, chunk_number, args.chunksize, start_time),
+                "meta": create_metadata(search_query, args, total_results_retrieved, total_results_this_query,  searchID, queryUrl, chunk_number, args.chunksize, start_time_fmt2),
                 "results": [result]
             }
-            output_filename = f"{args.save if args.save else args.search}_{i+1}.json"
+            output_filename = f"{filenamestub}_{i+1}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Individual result saved to {output_filename}")
 

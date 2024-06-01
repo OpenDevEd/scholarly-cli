@@ -194,7 +194,7 @@ def chunk_list(iterable, chunk_size):
         yield chunk
 
 
-def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number=None, chunk_size=None, start_time=None):
+def create_metadata(search_query, args, total_results_retrieved, total_results_this_query, searchID, queryUrl, chunk_number=None, chunk_size=None, start_time=None):
     firstItem = 1
     if chunk_size is not None:
         firstItem = (chunk_number - 1) * chunk_size + \
@@ -203,7 +203,8 @@ def create_metadata(search_query, args, total_results, searchID, queryUrl, chunk
         "version": "OpenDevEd_jsonUploaderV01",
         "query": search_query,
         "searchTerm": args.search,
-        "totalResults": count_results(args),
+        "totalResultsRetrieved": total_results_retrieved,
+        "resultsAvailable": total_results_this_query,
         "source": "Google Scholar",
         "sourceFormat": "original",
         "date": gettime(),
@@ -243,13 +244,15 @@ def count_results(args, search_query, timeout=30):
         print(f"Error counting results: {e}")
         return None
 
-
 def get_results_count(search_results):
     result_count = search_results._get_total_results()
+    return result_count
+
+
+def format_count(result_count):
     formatted_count = "{:,}".format(
         result_count) if result_count is not None else "Unknown"
     return formatted_count
-
 
 def main():
     start_time = time.time()
@@ -310,13 +313,14 @@ def main():
     remaining_queries = 20000  # Example initial value, replace with actual value
 
     total_number_of_items = args.limit
-    total_results_estimated = 0
+    total_results_retrieved = 0
 
-    count = get_results_count(search_results)
+    total_results_this_query = get_results_count(search_results)
     with open(filenameBase + ".tsv", 'w') as f:
         # Write count, search_query, and expanded_search_query to the file, separated by tabs
-        f.write(f"{count}\t{search_query}\t{expanded_search_query}\n")
-    print(f"Total number of results: {count}")
+        f.write(f"{total_results_this_query}\t{search_query}\t{expanded_search_query}\n")
+    formatted_count = format_count(total_results_this_query)
+    print(f"Total number of results: {formatted_count}")
     if args.count:
         return
 
@@ -338,23 +342,23 @@ def main():
             result = get_full_publication_details(result)
 
         retrieved_results.append(result)
-        total_results_estimated += 1  # Increment total results estimate
+        total_results_retrieved += 1  # Increment total results estimate
 
         if args.chunksize and items_in_chunk >= args.chunksize:
             chunk_number += 1
-            write_data(args, search_query, start_time, total_results_estimated,
+            write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query, 
                        searchID, queryUrl, chunk_number, retrieved_results)
             retrieved_results = []
             items_in_chunk = 0
 
         progress = round((items_retrieved / total_number_of_items) * 100)
         log_additional_info(items_retrieved, progress, remaining_queries,
-                            total_results_estimated, 10, start_time, remaining_queries)
+                            total_results_retrieved, 10, start_time, remaining_queries)
 
     if retrieved_results:
         if args.chunksize is not None:
             chunk_number += 1
-        write_data(args, search_query, start_time, total_results_estimated,
+        write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query,
                    searchID, queryUrl, chunk_number, retrieved_results)
 
     if not (args.json or args.ijson or args.bibtex):
@@ -373,10 +377,10 @@ def main():
     logger.info("Script execution completed.")
 
 
-def write_data(args, search_query, start_time, total_results, searchID, queryUrl, chunk_number, result):
+def write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query, searchID, queryUrl, chunk_number, result):
     if args.json:
         output_data = {
-            "meta": create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number, args.chunksize, start_time),
+            "meta": create_metadata(search_query, args, total_results_retrieved, total_results_this_query,  searchID, queryUrl, chunk_number, args.chunksize, start_time),
             "results": result
         }
         if chunk_number > -1:
@@ -391,7 +395,7 @@ def write_data(args, search_query, start_time, total_results, searchID, queryUrl
     if args.ijson:
         for i, result in enumerate(result):
             output_data = {
-                "meta": create_metadata(search_query, args, total_results, searchID, queryUrl, chunk_number, args.chunksize, start_time),
+                "meta": create_metadata(search_query, args, total_results_retrieved, total_results_this_query,  searchID, queryUrl, chunk_number, args.chunksize, start_time),
                 "results": [result]
             }
             output_filename = f"{args.save if args.save else args.search}_{i+1}.json"

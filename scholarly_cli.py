@@ -10,6 +10,10 @@ import uuid
 import logging
 from pathlib import Path
 from scholarly import scholarly, ProxyGenerator
+import shutil
+import subprocess
+from urllib.parse import quote
+
 
 def configure_logging():
     """Configure logging settings."""
@@ -246,9 +250,22 @@ def main():
             return
 
     search_query = args.search
-    searchID = str(uuid.uuid4())
-    queryUrl = f"https://scholar.google.com/scholar?q={search_query}"
 
+    # Check if search_query contains '...'
+    if '...' in search_query:
+        # Check if 'search-terms-expander' command exists
+        if shutil.which('search-terms-expander') is not None:
+            # Pass search_query to the external command and read the output
+            expanded_search_query = subprocess.check_output(['search-terms-expander', search_query]).decode('utf-8')
+        else:
+            raise Exception("'search-terms-expander' command not found")
+    else:
+        expanded_search_query = search_query
+
+    encoded_search_query = quote(expanded_search_query)
+
+    searchID = str(uuid.uuid4())
+    queryUrl = f"https://scholar.google.com/scholar?q={encoded_search_query}"
     if args.testurllength:
         test_url_length(search_query)
         return

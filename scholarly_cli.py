@@ -3,16 +3,14 @@ import argparse
 import datetime
 import json
 import os
-import math
+from pipes import quote
 import re
+import shutil
+import subprocess
 import time
 import uuid
 import logging
-from pathlib import Path
 from scholarly import scholarly, ProxyGenerator
-import shutil
-import subprocess
-from urllib.parse import quote
 
 
 def configure_logging():
@@ -53,7 +51,7 @@ def parse_arguments():
     parser.add_argument('--citations', type=bool, default=False,
                         help='Include citations in the search results.')
     parser.add_argument('--date', type=str,
-                        help='Date range in format year_low-year_high')
+                        help='Date range in format year_low-year_high.')
     parser.add_argument('--sort_by', type=str, choices=["relevance", "date"],
                         default="relevance", help="Sort by relevance or date, defaults to relevance")
     parser.add_argument('--sort_order', type=str, choices=[
@@ -214,8 +212,8 @@ def create_metadata(search_query, args, total_results_retrieved, total_results_t
         "startingPage": "",
         "endingPage": "",
         "filters": {
-            "dateFrom": args.year_low,
-            "dateTo": args.year_high
+            "dateFrom": args.year_low if hasattr(args, 'year_low') else None,
+            "dateTo": args.year_high if hasattr(args, 'year_high') else None
         },
         "sortBy": args.sort_by,
         "sortOrder": args.sort_order,
@@ -237,12 +235,17 @@ def save_to_json(data, filename):
 def count_results(args, search_query, timeout=30):
     """ Function to count results with a timeout. """
     try:
-        search_results = scholarly.search_pubs(
-            search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
+        if hasattr(args, 'year_low') and hasattr(args, 'year_high'):
+            search_results = scholarly.search_pubs(
+                search_query, patents=args.patents, citations=args.citations, year_low=args.year_low, year_high=args.year_high)
+        else:
+            search_results = scholarly.search_pubs(
+                search_query, patents=args.patents, citations=args.citations)
         return get_results_count(search_results)
     except Exception as e:
         print(f"Error counting results: {e}")
         return None
+
 
 def get_results_count(search_results):
     result_count = search_results._get_total_results()
@@ -253,6 +256,7 @@ def format_count(result_count):
     formatted_count = "{:,}".format(
         result_count) if result_count is not None else "Unknown"
     return formatted_count
+
 
 def main():
     start_time = time.time()
@@ -312,7 +316,7 @@ def main():
     getproxy(args)
 
     search_results = scholarly.search_pubs(expanded_search_query, patents=args.patents,
-                                           citations=args.citations, year_low=args.year_low, year_high=args.year_high)
+                                           citations=args.citations, year_low=args.year_low if hasattr(args, 'year_low') else None, year_high=args.year_high if hasattr(args, 'year_high') else None)
 
     remaining_queries = 20000  # Example initial value, replace with actual value
 
@@ -350,7 +354,7 @@ def main():
 
         if args.chunksize and items_in_chunk >= args.chunksize:
             chunk_number += 1
-            write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query, 
+            write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query,
                        searchID, queryUrl, chunk_number, retrieved_results)
             retrieved_results = []
             items_in_chunk = 0

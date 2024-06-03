@@ -51,7 +51,7 @@ def parse_arguments():
     parser.add_argument('--citations', type=bool, default=False,
                         help='Include citations in the search results.')
     parser.add_argument('--date', type=str,
-                        help='Date range in format year_low-year_high.')
+                        help='Date range in format year_low-year_high, year, year- or -year.')
     parser.add_argument('--sort_by', type=str, choices=["relevance", "date"],
                         default="relevance", help="Sort by relevance or date, defaults to relevance")
     parser.add_argument('--sort_order', type=str, choices=[
@@ -78,6 +78,7 @@ def parse_arguments():
     subparsers.add_parser('config', help='Configure API key')
 
     return parser.parse_args()
+
 
 
 def log_additional_info(page, progress, remaining_queries, total_results, items_per_page, start_time, quota_after_search_has_finished):
@@ -273,12 +274,26 @@ def main():
 
     if args.date:
         try:
-            year_low, year_high = map(int, args.date.split('-'))
-            args.year_low = year_low
-            args.year_high = year_high
+            if '-' in args.date:
+                if args.date.startswith('-'):
+                    year_high = int(args.date[1:])
+                    args.year_low = None
+                    args.year_high = year_high
+                elif args.date.endswith('-'):
+                    year_low = int(args.date[:-1])
+                    args.year_low = year_low
+                    args.year_high = None
+                else:
+                    year_low, year_high = map(int, args.date.split('-'))
+                    args.year_low = year_low
+                    args.year_high = year_high
+            else:
+                year = int(args.date)
+                args.year_low = year
+                args.year_high = year
         except ValueError:
             logger.error(
-                "Invalid date format. Please use year_low-year_high format.")
+                "Invalid date format. Please use year, year-, -year or year_low-year_high format.")
             return
 
     search_query = args.search
@@ -383,6 +398,7 @@ def main():
     elapsed_time = time.time() - start_time
     logger.info(f"Script executed in {elapsed_time:.2f} seconds.")
     logger.info("Script execution completed.")
+
 
 
 def write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query, searchID, queryUrl, chunk_number, result):

@@ -320,7 +320,7 @@ def main():
             expanded_search_query = expanded_search_query.replace('  ', ' ')
             print(f"Expanded search query: /{expanded_search_query}/\n")
         else:
-            raise Exception("'search-terms-expander' command not found")
+            raise Exception("'search-terms-expander' command not found. If you search string include ..., AND, or consists of more than one positional argument, search term expansion is triggered.")
     else:
         expanded_search_query = search_query
 

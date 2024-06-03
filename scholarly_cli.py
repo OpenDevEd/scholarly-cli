@@ -78,10 +78,10 @@ def parse_arguments():
                         help='Test the length of the search query against common URL length limits')
     search_parser.add_argument('--chunksize', type=int,
                         help='Number of items per chunk')
-    search_parser.add_argument('--noexpansion', type=bool,
+    search_parser.add_argument('--noexpansion', action='store_true', default=False,
                                help='If your search term contains ... or AND or uses more than one positional argument, search term expansion is triggered. Use --noexpansion to suppress expansion.')
-    search_parser.add_argument('--anyversion', type=bool,
-                               help='If you search terms are expanded, search-term-expander version ' + expander_recommended_version + ". Use --anyversion to suppress strict version checking.")
+    search_parser.add_argument('--anyversion', action='store_true', default=False,
+                               help='If you search terms are expanded, search-term-expander version ' + expander_recommended_version + " is required. Use --anyversion to suppress strict version checking.")
 
     subparsers.add_parser('config', help='Configure API key')
 
@@ -315,7 +315,7 @@ def main():
         filenameBase = start_time_fmt + "-" + filenameBase
 
     # Check if search_query contains '...'
-    if not(args.noexpansion) and ('...' in search_query or search_query.len() > 1 or search_query_str.match("AND")):
+    if not(args.noexpansion) and ('...' in search_query or len(search_query) > 1 or search_query_str.match("AND")):
         print(f"Original search query: {search_query}")
         # Check if 'search-terms-expander' command exists
         if shutil.which('search-terms-expander') is not None:
@@ -330,7 +330,7 @@ def main():
                     raise Exception(f"search-terms-expander version {expander_recommended_version} is recommended. Use --anyversion to continue with version {expander_version}.")
             # Pass search_query to the external command and read the output
             expanded_search_query = subprocess.check_output(
-                ['search-terms-expander', "-g", "-s", filenameBase + ".terms.x1E.txt", search_query]).decode('utf-8')
+                ['search-terms-expander', "-g", "-s", filenameBase + ".terms.x1E.txt", *search_query]).decode('utf-8')
             expanded_search_query = expanded_search_query.replace('\n', ' ')
             expanded_search_query = expanded_search_query.replace('  ', ' ')
             print(f"Expanded search query: /{expanded_search_query}/\n")

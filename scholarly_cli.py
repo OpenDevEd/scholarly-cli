@@ -428,11 +428,12 @@ def main():
 
 
 def write_data(args, search_query, start_time, total_results_retrieved, total_results_this_query, searchID, queryUrl, chunk_number, result):
-    filenamestub = args.save if args.save else re.sub(r'\W+', '_', args.search)
+    search_query_str = " ".join(args.search)  # Convert list to string
+    filenamestub = args.save if args.save else re.sub(r'\W+', '_', search_query_str)
     start_time_datetime = datetime.datetime.fromtimestamp(start_time)
     start_time_fmt = start_time_datetime.strftime('%Y%m%d-%H%M%S')
     start_time_fmt2 = start_time_datetime.strftime('%Y-%m-%d %H:%M:%S')
-    if (args.time):
+    if args.time:
         filenamestub = start_time_fmt + "-" + filenamestub
     if args.json:
         output_data = {
@@ -457,6 +458,7 @@ def write_data(args, search_query, start_time, total_results_retrieved, total_re
             output_filename = f"{filenamestub}_{i+1}.json"
             save_to_json(output_data, output_filename)
             logger.info(f"Individual result saved to {output_filename}")
+
 
 
 if __name__ == "__main__":

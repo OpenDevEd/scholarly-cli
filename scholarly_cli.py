@@ -309,7 +309,7 @@ def main():
         filenameBase = start_time_fmt + "-" + filenameBase
 
     # Check if search_query contains '...'
-    if '...' in search_query or search_query.len() > 1:
+    if '...' in search_query or search_query.len() > 1 or search_query_str.match("AND"):
         print(f"Original search query: {search_query}")
         # Check if 'search-terms-expander' command exists
         if shutil.which('search-terms-expander') is not None:

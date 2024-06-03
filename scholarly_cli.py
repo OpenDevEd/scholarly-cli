@@ -41,40 +41,42 @@ def timestamp(text):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--search', type=str, help='Search query')
-    parser.add_argument('--limit', type=int, default=20,
+    subparsers = parser.add_subparsers(dest='command')
+
+    search_parser = subparsers.add_parser('search', help='Search')
+    search_parser.add_argument('search', type=str, help='Search query')
+    search_parser.add_argument('--limit', type=int, default=20,
                         help='Number of results to retrieve (default=20)')
-    parser.add_argument('--count', action='store_true',
+    search_parser.add_argument('--count', action='store_true',
                         help='Only count the number of results without processing them')
-    parser.add_argument('--patents', type=bool, default=False,
+    search_parser.add_argument('--patents', type=bool, default=False,
                         help='Include patents in the search results.')
-    parser.add_argument('--citations', type=bool, default=False,
+    search_parser.add_argument('--citations', type=bool, default=False,
                         help='Include citations in the search results.')
-    parser.add_argument('--date', type=str,
+    search_parser.add_argument('--date', type=str,
                         help='Date range in format year_low-year_high, year, year- or -year.')
-    parser.add_argument('--sort_by', type=str, choices=["relevance", "date"],
+    search_parser.add_argument('--sort_by', type=str, choices=["relevance", "date"],
                         default="relevance", help="Sort by relevance or date, defaults to relevance")
-    parser.add_argument('--sort_order', type=str, choices=[
+    search_parser.add_argument('--sort_order', type=str, choices=[
                         "asc", "desc"], default="desc", help="Sort order: asc or desc, defaults to asc")
-    parser.add_argument('--json', type=bool,
+    search_parser.add_argument('--json', type=bool,
                         default=True,
                         help='Output json (default=True).')
-    parser.add_argument('--ijson', action='store_true',
+    search_parser.add_argument('--ijson', action='store_true',
                         help='Output individual json files, one per result (default=False).')
-    parser.add_argument('--bibtex', action='store_true',
+    search_parser.add_argument('--bibtex', action='store_true',
                         help='Output bibtex (default=False).')
-    parser.add_argument('--fill', action='store_true',
+    search_parser.add_argument('--fill', action='store_true',
                         help='Fill results; requires extra queries (default=False).')
-    parser.add_argument(
+    search_parser.add_argument(
         '--save', type=str, help='Output file name without extension - otherwise the search query will be used')
-    parser.add_argument('--time', action='store_true',
+    search_parser.add_argument('--time', action='store_true',
                         help='Prefix data/time to the output file.')
-    parser.add_argument('--testurllength', action='store_true',
+    search_parser.add_argument('--testurllength', action='store_true',
                         help='Test the length of the search query against common URL length limits')
-    parser.add_argument('--chunksize', type=int,
+    search_parser.add_argument('--chunksize', type=int,
                         help='Number of items per chunk')
 
-    subparsers = parser.add_subparsers(dest='command')
     subparsers.add_parser('config', help='Configure API key')
 
     return parser.parse_args()

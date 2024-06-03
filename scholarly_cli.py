@@ -44,7 +44,7 @@ def parse_arguments():
     subparsers = parser.add_subparsers(dest='command')
 
     search_parser = subparsers.add_parser('search', help='Search')
-    search_parser.add_argument('search', type=str, help='Search query')
+    search_parser.add_argument('search', type=str, nargs='+', help='Search query')
     search_parser.add_argument('--limit', type=int, default=20,
                         help='Number of results to retrieve (default=20)')
     search_parser.add_argument('--count', action='store_true',
@@ -270,8 +270,10 @@ def main():
         logger.info(f"API key saved to {api_key_file}")
         return
 
-    if not args.search:
-        logger.error("Please provide a search query using --search argument.")
+    # process all other options here.
+
+    if args.command != "search":
+        logger.error("Please valid argument.")
         return
 
     if args.date:
@@ -299,14 +301,15 @@ def main():
             return
 
     search_query = args.search
-    filenameBase = re.sub(r'\W+', '_', search_query)
+    search_query_str = " ".join(search_query)
+    filenameBase = re.sub(r'\W+', '_', search_query_str)
     if (args.time):
         start_time_datetime = datetime.datetime.fromtimestamp(start_time)
         start_time_fmt = start_time_datetime.strftime('%Y%m%d-%H%M%S')
         filenameBase = start_time_fmt + "-" + filenameBase
 
     # Check if search_query contains '...'
-    if '...' in search_query:
+    if '...' in search_query or search_query.len() > 1:
         print(f"Original search query: {search_query}")
         # Check if 'search-terms-expander' command exists
         if shutil.which('search-terms-expander') is not None:

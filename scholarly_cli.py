@@ -315,7 +315,7 @@ def main():
         filenameBase = start_time_fmt + "-" + filenameBase
 
     # Check if search_query contains '...'
-    if not(args.noexpansion) and ('...' in search_query or len(search_query) > 1 or search_query_str.match("AND")):
+    if not(args.noexpansion) and ('...' in search_query or len(search_query) > 1 or re.match("AND", search_query_str)):
         print(f"Original search query: {search_query}")
         # Check if 'search-terms-expander' command exists
         if shutil.which('search-terms-expander') is not None:
@@ -339,6 +339,12 @@ def main():
     else:
         expanded_search_query = search_query
 
+    # Check if expanded_search_query is not a string or bytes-like object
+    if not isinstance(expanded_search_query, (str, bytes)):
+        # Convert to string or handle appropriately
+        expanded_search_query = str(expanded_search_query)
+
+    # Now it's safe to call quote
     encoded_search_query = quote(expanded_search_query)
     print(f"Encoded search query: {encoded_search_query}")
 
